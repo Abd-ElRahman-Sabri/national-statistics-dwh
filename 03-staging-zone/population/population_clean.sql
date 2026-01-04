@@ -18,32 +18,27 @@ INSERT INTO staging.population_clean (
     total_population,
     male_population,
     female_population,
-    source_file,
     load_date
 )
 SELECT
-    p.record_id,
-    p.year,
-    COALESCE(m.standard_name, p.governorate_name),
-    p.total_population,
-    p.male_population,
-    p.female_population,
-    p.source_file,
-    p.load_date
-FROM landing.population_raw p
-LEFT JOIN staging.governorate_mapping m
-    ON LOWER(p.governorate_name) = LOWER(m.raw_name)
-WHERE NOT (
-       p.year IS NULL
-    OR p.year < 1900
-    OR p.year > EXTRACT(YEAR FROM CURRENT_DATE)
-    OR p.governorate_name IS NULL
-    OR p.total_population IS NULL
-    OR p.male_population IS NULL
-    OR p.female_population IS NULL
-    OR p.male_population < 0
-    OR p.female_population < 0
-    OR p.total_population < (p.male_population + p.female_population)
+    r.record_id,
+    r.year,
+    gm.standard_name,
+    r.total_population,
+    r.male_population,
+    r.female_population,
+    r.load_date
+FROM landing.population_raw r
+JOIN (
+    SELECT DISTINCT
+        LOWER(raw_name) AS raw_name_norm,
+        standard_name
+    FROM staging.governorate_mapping
+) gm
+    ON LOWER(r.governorate_name) = gm.raw_name_norm
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM staging.population_errors e
+    WHERE e.source_record_id = r.record_id
 );
-
 
