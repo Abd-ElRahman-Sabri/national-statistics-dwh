@@ -1,0 +1,29 @@
+CREATE TABLE staging.health_clean (
+    source_record_id BIGINT,
+    year INT NOT NULL,
+    governorate_name TEXT NOT NULL,
+    health_metric NUMERIC,
+    load_date TIMESTAMP
+);
+
+INSERT INTO staging.health_clean
+SELECT
+    r.record_id,
+    r.year,
+    gm.standard_name,
+    r.health_metric::NUMERIC,
+    r.load_date
+FROM landing.health_raw r
+JOIN (
+    SELECT DISTINCT
+        LOWER(raw_name) AS raw_name_norm,
+        standard_name
+    FROM staging.governorate_mapping
+) gm
+    ON LOWER(r.governorate_name) = gm.raw_name_norm
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM staging.health_errors e
+    WHERE e.source_record_id = r.record_id
+);
+

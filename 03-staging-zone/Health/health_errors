@@ -1,0 +1,23 @@
+CREATE TABLE staging.health_errors (
+    source_record_id BIGINT,
+    year INT,
+    governorate_name TEXT,
+    health_metric NUMERIC,
+    load_date TIMESTAMP,
+    error_reason TEXT
+);
+
+INSERT INTO staging.health_errors
+SELECT
+    record_id,
+    year,
+    governorate_name,
+    NULL,
+    load_date,
+    'non numeric health value'
+FROM landing.health_raw
+WHERE health_metric !~ '^[0-9]+(\.[0-9]+)?$'
+   OR health_metric IS NULL
+   OR year IS NULL
+   OR governorate_name IS NULL;
+
