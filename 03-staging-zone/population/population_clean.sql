@@ -10,35 +10,52 @@ CREATE TABLE staging.population_clean (
 );
 
 
-
 INSERT INTO staging.population_clean (
     source_record_id,
-    year,
     governorate_name,
+    year,
     total_population,
     male_population,
     female_population,
+    source_file,
     load_date
 )
 SELECT
-    r.record_id,
-    r.year,
-    gm.standard_name,
-    r.total_population,
-    r.male_population,
-    r.female_population,
-    r.load_date
-FROM landing.population_raw r
-JOIN (
-    SELECT DISTINCT
-        LOWER(raw_name) AS raw_name_norm,
-        standard_name
-    FROM staging.governorate_mapping
-) gm
-    ON LOWER(r.governorate_name) = gm.raw_name_norm
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM staging.population_errors e
-    WHERE e.source_record_id = r.record_id
-);
+    record_id        AS source_id,
+    governorate_name,
+    year,
+    total_population,
+    male_population,
+    female_population,
+    source_file,
+    load_date
+FROM (
+    SELECT
+        record_id,
+        governorate_name,
+        year,
+        total_population,
+        male_population,
+        female_population,
+        source_file,
+        load_date,
+        ROW_NUMBER() OVER (
+            PARTITION BY governorate_name, year
+            ORDER BY record_id
+        ) AS rn
+    FROM landing.population_raw
+    WHERE
+        governorate_name IS NOT NULL
+        AND year IS NOT NULL
+        AND total_population IS NOT NULL
+        AND male_population IS NOT NULL
+        AND female_population IS NOT NULL
+        AND male_population + female_population = total_population
+) t
+WHERE rn = 1;
+
+
+
+
+
 

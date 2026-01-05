@@ -13,8 +13,8 @@ CREATE TABLE staging.population_errors (
 
 INSERT INTO staging.population_errors (
     record_id,
-    year,
     governorate_name,
+    year,
     total_population,
     male_population,
     female_population,
@@ -23,37 +23,32 @@ INSERT INTO staging.population_errors (
     error_reason
 )
 SELECT
-    record_id,
-    year,
+    record_id AS source_id,
     governorate_name,
+    year,
     total_population,
     male_population,
     female_population,
     source_file,
     load_date,
     CASE
-        WHEN year IS NULL THEN 'year is null'
-        WHEN year < 1900 OR year > EXTRACT(YEAR FROM CURRENT_DATE) THEN 'invalid year'
-        WHEN governorate_name IS NULL THEN 'governorate is null'
-        WHEN total_population IS NULL THEN 'total_population is null'
-        WHEN male_population IS NULL OR female_population IS NULL THEN 'gender population is null'
-        WHEN male_population < 0 OR female_population < 0 THEN 'negative gender population'
-        WHEN total_population < (male_population + female_population)
-             THEN 'total less than male + female'
-    END
+        WHEN governorate_name IS NULL THEN 'NULL_GOVERNORATE'
+        WHEN year IS NULL THEN 'NULL_YEAR'
+        WHEN total_population IS NULL THEN 'NULL_TOTAL'
+        WHEN male_population IS NULL THEN 'NULL_MALE'
+        WHEN female_population IS NULL THEN 'NULL_FEMALE'
+        WHEN male_population + female_population <> total_population
+             THEN 'TOTAL_MISMATCH'
+        ELSE 'UNKNOWN'
+    END AS error_reason
 FROM landing.population_raw
 WHERE
-    year IS NULL
- OR year < 1900
- OR year > EXTRACT(YEAR FROM CURRENT_DATE)
- OR governorate_name IS NULL
- OR total_population IS NULL
- OR male_population IS NULL
- OR female_population IS NULL
- OR male_population < 0
- OR female_population < 0
- OR total_population < (male_population + female_population);
-
+    governorate_name IS NULL
+    OR year IS NULL
+    OR total_population IS NULL
+    OR male_population IS NULL
+    OR female_population IS NULL
+    OR male_population + female_population <> total_population;
 
 
 
