@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transformation>
   <info>
-    <name>load_fact_education</name>
+    <name>load_fact_population</name>
     <description/>
     <extended_description/>
     <trans_version/>
     <trans_type>Normal</trans_type>
-    <trans_status>0</trans_status>
     <directory>/</directory>
     <parameters>
     </parameters>
@@ -438,7 +437,7 @@
   </notepads>
   <connection>
     <name>national_statistics_CONN</name>
-    <server>192.168.1.2</server>
+    <server>${DB_HOST}</server>
     <type>POSTGRESQL</type>
     <access>Native</access>
     <database>national_statistics_dwh</database>
@@ -489,7 +488,7 @@
   </connection>
   <order>
     <hop>
-      <from>Read education from staging</from>
+      <from>Read population from staging</from>
       <to>Lookup governorate SK</to>
       <enabled>Y</enabled>
     </hop>
@@ -500,17 +499,17 @@
     </hop>
     <hop>
       <from>Lookup date SK</from>
-      <to>Aggregate education measures</to>
+      <to>Aggregate population measures</to>
       <enabled>Y</enabled>
     </hop>
     <hop>
-      <from>Aggregate education measures</from>
-      <to>Load fact_education</to>
+      <from>Aggregate population measures</from>
+      <to>Load fact_population</to>
       <enabled>Y</enabled>
     </hop>
   </order>
   <step>
-    <name>Aggregate education measures</name>
+    <name>Aggregate population measures</name>
     <type>GroupBy</type>
     <description/>
     <distribute>Y</distribute>
@@ -538,14 +537,20 @@
     </group>
     <fields>
       <field>
-        <aggregate>literacy_rate</aggregate>
-        <subject>literacy_rate</subject>
+        <aggregate>total_population</aggregate>
+        <subject>total_population</subject>
         <type>MAX</type>
         <valuefield/>
       </field>
       <field>
-        <aggregate>school_enrollment_rate</aggregate>
-        <subject>enrollment_rate</subject>
+        <aggregate>male_population</aggregate>
+        <subject>male_population</subject>
+        <type>MAX</type>
+        <valuefield/>
+      </field>
+      <field>
+        <aggregate>female_population</aggregate>
+        <subject>female_population</subject>
         <type>MAX</type>
         <valuefield/>
       </field>
@@ -565,7 +570,7 @@
     </GUI>
   </step>
   <step>
-    <name>Load fact_education</name>
+    <name>Load fact_population</name>
     <type>TableOutput</type>
     <description/>
     <distribute>Y</distribute>
@@ -577,7 +582,7 @@
     </partitioning>
     <connection>national_statistics_CONN</connection>
     <schema>dwh</schema>
-    <table>fact_education</table>
+    <table>fact_population</table>
     <commit>1000</commit>
     <truncate>N</truncate>
     <ignore_errors>N</ignore_errors>
@@ -602,12 +607,16 @@
         <stream_name>governorate_sk</stream_name>
       </field>
       <field>
-        <column_name>literacy_rate</column_name>
-        <stream_name>literacy_rate</stream_name>
+        <column_name>total_population</column_name>
+        <stream_name>total_population</stream_name>
       </field>
       <field>
-        <column_name>school_enrollment_rate</column_name>
-        <stream_name>school_enrollment_rate</stream_name>
+        <column_name>male_population</column_name>
+        <stream_name>male_population</stream_name>
+      </field>
+      <field>
+        <column_name>female_population</column_name>
+        <stream_name>female_population</stream_name>
       </field>
     </fields>
     <attributes/>
@@ -721,7 +730,7 @@
     </GUI>
   </step>
   <step>
-    <name>Read education from staging</name>
+    <name>Read population from staging</name>
     <type>TableInput</type>
     <description/>
     <distribute>Y</distribute>
@@ -735,9 +744,10 @@
     <sql>SELECT
   governorate_name,
   year,
-  literacy_rate,
-  enrollment_rate
-FROM staging.education_clean;
+  total_population,
+  male_population,
+  female_population
+FROM staging.population_clean;
 </sql>
     <limit>0</limit>
     <lookup/>
@@ -752,7 +762,7 @@ FROM staging.education_clean;
         <name>governorate_name</name>
         <length>2147483647</length>
         <precision>-1</precision>
-        <origin>Read education from staging</origin>
+        <origin>Table input</origin>
         <comments>governorate_name</comments>
         <conversion_Mask/>
         <decimal_symbol>.</decimal_symbol>
@@ -775,7 +785,7 @@ FROM staging.education_clean;
         <name>year</name>
         <length>9</length>
         <precision>0</precision>
-        <origin>Read education from staging</origin>
+        <origin>Table input</origin>
         <comments>year</comments>
         <conversion_Mask>####0;-####0</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
@@ -793,16 +803,16 @@ FROM staging.education_clean;
         <lenient_string_to_number>N</lenient_string_to_number>
       </value-meta>
       <value-meta>
-        <type>BigNumber</type>
+        <type>Integer</type>
         <storagetype>normal</storagetype>
-        <name>literacy_rate</name>
-        <length>-1</length>
-        <precision>-1</precision>
-        <origin>Read education from staging</origin>
-        <comments>literacy_rate</comments>
-        <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
+        <name>total_population</name>
+        <length>15</length>
+        <precision>0</precision>
+        <origin>Table input</origin>
+        <comments>total_population</comments>
+        <conversion_Mask>####0;-####0</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
-        <grouping_symbol/>
+        <grouping_symbol>,</grouping_symbol>
         <currency_symbol/>
         <trim_type>none</trim_type>
         <case_insensitive>N</case_insensitive>
@@ -816,16 +826,39 @@ FROM staging.education_clean;
         <lenient_string_to_number>N</lenient_string_to_number>
       </value-meta>
       <value-meta>
-        <type>BigNumber</type>
+        <type>Integer</type>
         <storagetype>normal</storagetype>
-        <name>enrollment_rate</name>
-        <length>-1</length>
-        <precision>-1</precision>
-        <origin>Read education from staging</origin>
-        <comments>enrollment_rate</comments>
-        <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
+        <name>male_population</name>
+        <length>15</length>
+        <precision>0</precision>
+        <origin>Table input</origin>
+        <comments>male_population</comments>
+        <conversion_Mask>####0;-####0</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
-        <grouping_symbol/>
+        <grouping_symbol>,</grouping_symbol>
+        <currency_symbol/>
+        <trim_type>none</trim_type>
+        <case_insensitive>N</case_insensitive>
+        <collator_disabled>Y</collator_disabled>
+        <collator_strength>0</collator_strength>
+        <sort_descending>N</sort_descending>
+        <output_padding>N</output_padding>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale>en_US</date_format_locale>
+        <date_format_timezone>Africa/Cairo</date_format_timezone>
+        <lenient_string_to_number>N</lenient_string_to_number>
+      </value-meta>
+      <value-meta>
+        <type>Integer</type>
+        <storagetype>normal</storagetype>
+        <name>female_population</name>
+        <length>15</length>
+        <precision>0</precision>
+        <origin>Table input</origin>
+        <comments>female_population</comments>
+        <conversion_Mask>####0;-####0</conversion_Mask>
+        <decimal_symbol>.</decimal_symbol>
+        <grouping_symbol>,</grouping_symbol>
         <currency_symbol/>
         <trim_type>none</trim_type>
         <case_insensitive>N</case_insensitive>

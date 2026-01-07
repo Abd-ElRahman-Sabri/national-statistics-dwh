@@ -438,7 +438,7 @@
   </notepads>
   <connection>
     <name>national_statistics_CONN</name>
-    <server>192.168.1.2</server>
+    <server>${DB_HOST}</server>
     <type>POSTGRESQL</type>
     <access>Native</access>
     <database>national_statistics_dwh</database>

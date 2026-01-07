@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transformation>
   <info>
-    <name>load_fact_education</name>
+    <name>load_fact_economic</name>
     <description/>
     <extended_description/>
     <trans_version/>
@@ -438,7 +438,7 @@
   </notepads>
   <connection>
     <name>national_statistics_CONN</name>
-    <server>192.168.1.2</server>
+    <server>${DB_HOST}</server>
     <type>POSTGRESQL</type>
     <access>Native</access>
     <database>national_statistics_dwh</database>
@@ -489,28 +489,72 @@
   </connection>
   <order>
     <hop>
-      <from>Read education from staging</from>
-      <to>Lookup governorate SK</to>
+      <from>Lookup date SK</from>
+      <to>Aggregate economic measures</to>
       <enabled>Y</enabled>
     </hop>
     <hop>
-      <from>Lookup governorate SK</from>
+      <from>Aggregate economic measures</from>
+      <to>inflation_rate</to>
+      <enabled>Y</enabled>
+    </hop>
+    <hop>
+      <from>Lookup country SK</from>
       <to>Lookup date SK</to>
       <enabled>Y</enabled>
     </hop>
     <hop>
-      <from>Lookup date SK</from>
-      <to>Aggregate education measures</to>
+      <from>Read economic from staging</from>
+      <to>Add country constant</to>
       <enabled>Y</enabled>
     </hop>
     <hop>
-      <from>Aggregate education measures</from>
-      <to>Load fact_education</to>
+      <from>Add country constant</from>
+      <to>Lookup country SK</to>
       <enabled>Y</enabled>
     </hop>
   </order>
   <step>
-    <name>Aggregate education measures</name>
+    <name>Add country constant</name>
+    <type>Constant</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <fields>
+      <field>
+        <name>country_name</name>
+        <type>String</type>
+        <format/>
+        <currency/>
+        <decimal/>
+        <group/>
+        <nullif>Egypt</nullif>
+        <length>-1</length>
+        <precision>-1</precision>
+        <set_empty_string>N</set_empty_string>
+      </field>
+    </fields>
+    <attributes/>
+    <cluster_schema/>
+    <remotesteps>
+      <input>
+      </input>
+      <output>
+      </output>
+    </remotesteps>
+    <GUI>
+      <xloc>272</xloc>
+      <yloc>96</yloc>
+      <draw>Y</draw>
+    </GUI>
+  </step>
+  <step>
+    <name>Aggregate economic measures</name>
     <type>GroupBy</type>
     <description/>
     <distribute>Y</distribute>
@@ -533,19 +577,25 @@
         <name>date_sk</name>
       </field>
       <field>
-        <name>governorate_sk</name>
+        <name>country_sk</name>
       </field>
     </group>
     <fields>
       <field>
-        <aggregate>literacy_rate</aggregate>
-        <subject>literacy_rate</subject>
+        <aggregate>gdp</aggregate>
+        <subject>gdp</subject>
         <type>MAX</type>
         <valuefield/>
       </field>
       <field>
-        <aggregate>school_enrollment_rate</aggregate>
-        <subject>enrollment_rate</subject>
+        <aggregate>unemployment_rate</aggregate>
+        <subject>unemployment_rate</subject>
+        <type>MAX</type>
+        <valuefield/>
+      </field>
+      <field>
+        <aggregate>inflation_rate</aggregate>
+        <subject>inflation_rate</subject>
         <type>MAX</type>
         <valuefield/>
       </field>
@@ -565,8 +615,8 @@
     </GUI>
   </step>
   <step>
-    <name>Load fact_education</name>
-    <type>TableOutput</type>
+    <name>Lookup country SK</name>
+    <type>DBLookup</type>
     <description/>
     <distribute>Y</distribute>
     <custom_distribution/>
@@ -576,40 +626,28 @@
       <schema_name/>
     </partitioning>
     <connection>national_statistics_CONN</connection>
-    <schema>dwh</schema>
-    <table>fact_education</table>
-    <commit>1000</commit>
-    <truncate>N</truncate>
-    <ignore_errors>N</ignore_errors>
-    <use_batch>Y</use_batch>
-    <specify_fields>Y</specify_fields>
-    <partitioning_enabled>N</partitioning_enabled>
-    <partitioning_field/>
-    <partitioning_daily>N</partitioning_daily>
-    <partitioning_monthly>Y</partitioning_monthly>
-    <tablename_in_field>N</tablename_in_field>
-    <tablename_field/>
-    <tablename_in_table>Y</tablename_in_table>
-    <return_keys>N</return_keys>
-    <return_field/>
-    <fields>
-      <field>
-        <column_name>date_sk</column_name>
-        <stream_name>date_sk</stream_name>
-      </field>
-      <field>
-        <column_name>governorate_sk</column_name>
-        <stream_name>governorate_sk</stream_name>
-      </field>
-      <field>
-        <column_name>literacy_rate</column_name>
-        <stream_name>literacy_rate</stream_name>
-      </field>
-      <field>
-        <column_name>school_enrollment_rate</column_name>
-        <stream_name>school_enrollment_rate</stream_name>
-      </field>
-    </fields>
+    <cache>N</cache>
+    <cache_load_all>N</cache_load_all>
+    <cache_size>0</cache_size>
+    <lookup>
+      <schema>dwh</schema>
+      <table>dim_country</table>
+      <orderby/>
+      <fail_on_multiple>N</fail_on_multiple>
+      <eat_row_on_failure>N</eat_row_on_failure>
+      <key>
+        <name>country_name</name>
+        <field>country_name</field>
+        <condition>=</condition>
+        <name2/>
+      </key>
+      <value>
+        <name>country_sk</name>
+        <rename>country_sk</rename>
+        <default/>
+        <type>Integer</type>
+      </value>
+    </lookup>
     <attributes/>
     <cluster_schema/>
     <remotesteps>
@@ -619,8 +657,8 @@
       </output>
     </remotesteps>
     <GUI>
-      <xloc>1000</xloc>
-      <yloc>100</yloc>
+      <xloc>432</xloc>
+      <yloc>96</yloc>
       <draw>Y</draw>
     </GUI>
   </step>
@@ -673,55 +711,7 @@
     </GUI>
   </step>
   <step>
-    <name>Lookup governorate SK</name>
-    <type>DBLookup</type>
-    <description/>
-    <distribute>Y</distribute>
-    <custom_distribution/>
-    <copies>1</copies>
-    <partitioning>
-      <method>none</method>
-      <schema_name/>
-    </partitioning>
-    <connection>national_statistics_CONN</connection>
-    <cache>N</cache>
-    <cache_load_all>N</cache_load_all>
-    <cache_size>0</cache_size>
-    <lookup>
-      <schema>dwh</schema>
-      <table>dim_governorate</table>
-      <orderby/>
-      <fail_on_multiple>N</fail_on_multiple>
-      <eat_row_on_failure>N</eat_row_on_failure>
-      <key>
-        <name>governorate_name</name>
-        <field>governorate_name</field>
-        <condition>=</condition>
-        <name2/>
-      </key>
-      <value>
-        <name>governorate_sk</name>
-        <rename>governorate_sk</rename>
-        <default/>
-        <type>Integer</type>
-      </value>
-    </lookup>
-    <attributes/>
-    <cluster_schema/>
-    <remotesteps>
-      <input>
-      </input>
-      <output>
-      </output>
-    </remotesteps>
-    <GUI>
-      <xloc>400</xloc>
-      <yloc>100</yloc>
-      <draw>Y</draw>
-    </GUI>
-  </step>
-  <step>
-    <name>Read education from staging</name>
+    <name>Read economic from staging</name>
     <type>TableInput</type>
     <description/>
     <distribute>Y</distribute>
@@ -733,11 +723,11 @@
     </partitioning>
     <connection>national_statistics_CONN</connection>
     <sql>SELECT
-  governorate_name,
   year,
-  literacy_rate,
-  enrollment_rate
-FROM staging.education_clean;
+  gdp,
+  unemployment_rate,
+  inflation_rate
+FROM staging.economic_clean;
 </sql>
     <limit>0</limit>
     <lookup/>
@@ -747,35 +737,12 @@ FROM staging.education_clean;
     <cached_row_meta_active>N</cached_row_meta_active>
     <row-meta>
       <value-meta>
-        <type>String</type>
-        <storagetype>normal</storagetype>
-        <name>governorate_name</name>
-        <length>2147483647</length>
-        <precision>-1</precision>
-        <origin>Read education from staging</origin>
-        <comments>governorate_name</comments>
-        <conversion_Mask/>
-        <decimal_symbol>.</decimal_symbol>
-        <grouping_symbol>,</grouping_symbol>
-        <currency_symbol/>
-        <trim_type>none</trim_type>
-        <case_insensitive>N</case_insensitive>
-        <collator_disabled>Y</collator_disabled>
-        <collator_strength>0</collator_strength>
-        <sort_descending>N</sort_descending>
-        <output_padding>N</output_padding>
-        <date_format_lenient>N</date_format_lenient>
-        <date_format_locale>en_US</date_format_locale>
-        <date_format_timezone>Africa/Cairo</date_format_timezone>
-        <lenient_string_to_number>N</lenient_string_to_number>
-      </value-meta>
-      <value-meta>
         <type>Integer</type>
         <storagetype>normal</storagetype>
         <name>year</name>
         <length>9</length>
         <precision>0</precision>
-        <origin>Read education from staging</origin>
+        <origin>Read economic from staging</origin>
         <comments>year</comments>
         <conversion_Mask>####0;-####0</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
@@ -795,11 +762,11 @@ FROM staging.education_clean;
       <value-meta>
         <type>BigNumber</type>
         <storagetype>normal</storagetype>
-        <name>literacy_rate</name>
+        <name>gdp</name>
         <length>-1</length>
         <precision>-1</precision>
-        <origin>Read education from staging</origin>
-        <comments>literacy_rate</comments>
+        <origin>Read economic from staging</origin>
+        <comments>gdp</comments>
         <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
         <grouping_symbol/>
@@ -818,11 +785,34 @@ FROM staging.education_clean;
       <value-meta>
         <type>BigNumber</type>
         <storagetype>normal</storagetype>
-        <name>enrollment_rate</name>
+        <name>unemployment_rate</name>
         <length>-1</length>
         <precision>-1</precision>
-        <origin>Read education from staging</origin>
-        <comments>enrollment_rate</comments>
+        <origin>Read economic from staging</origin>
+        <comments>unemployment_rate</comments>
+        <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
+        <decimal_symbol>.</decimal_symbol>
+        <grouping_symbol/>
+        <currency_symbol/>
+        <trim_type>none</trim_type>
+        <case_insensitive>N</case_insensitive>
+        <collator_disabled>Y</collator_disabled>
+        <collator_strength>0</collator_strength>
+        <sort_descending>N</sort_descending>
+        <output_padding>N</output_padding>
+        <date_format_lenient>N</date_format_lenient>
+        <date_format_locale>en_US</date_format_locale>
+        <date_format_timezone>Africa/Cairo</date_format_timezone>
+        <lenient_string_to_number>N</lenient_string_to_number>
+      </value-meta>
+      <value-meta>
+        <type>BigNumber</type>
+        <storagetype>normal</storagetype>
+        <name>inflation_rate</name>
+        <length>-1</length>
+        <precision>-1</precision>
+        <origin>Read economic from staging</origin>
+        <comments>inflation_rate</comments>
         <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
         <grouping_symbol/>
@@ -848,7 +838,71 @@ FROM staging.education_clean;
       </output>
     </remotesteps>
     <GUI>
-      <xloc>200</xloc>
+      <xloc>96</xloc>
+      <yloc>96</yloc>
+      <draw>Y</draw>
+    </GUI>
+  </step>
+  <step>
+    <name>inflation_rate</name>
+    <type>TableOutput</type>
+    <description/>
+    <distribute>Y</distribute>
+    <custom_distribution/>
+    <copies>1</copies>
+    <partitioning>
+      <method>none</method>
+      <schema_name/>
+    </partitioning>
+    <connection>national_statistics_CONN</connection>
+    <schema>dwh</schema>
+    <table>fact_economic</table>
+    <commit>1000</commit>
+    <truncate>N</truncate>
+    <ignore_errors>N</ignore_errors>
+    <use_batch>Y</use_batch>
+    <specify_fields>Y</specify_fields>
+    <partitioning_enabled>N</partitioning_enabled>
+    <partitioning_field/>
+    <partitioning_daily>N</partitioning_daily>
+    <partitioning_monthly>Y</partitioning_monthly>
+    <tablename_in_field>N</tablename_in_field>
+    <tablename_field/>
+    <tablename_in_table>Y</tablename_in_table>
+    <return_keys>N</return_keys>
+    <return_field/>
+    <fields>
+      <field>
+        <column_name>date_sk</column_name>
+        <stream_name>date_sk</stream_name>
+      </field>
+      <field>
+        <column_name>country_sk</column_name>
+        <stream_name>country_sk</stream_name>
+      </field>
+      <field>
+        <column_name>gdp</column_name>
+        <stream_name>gdp</stream_name>
+      </field>
+      <field>
+        <column_name>unemployment_rate</column_name>
+        <stream_name>unemployment_rate</stream_name>
+      </field>
+      <field>
+        <column_name>inflation_rate</column_name>
+        <stream_name>inflation_rate</stream_name>
+      </field>
+    </fields>
+    <attributes/>
+    <cluster_schema/>
+    <remotesteps>
+      <input>
+      </input>
+      <output>
+      </output>
+    </remotesteps>
+    <GUI>
+      <xloc>1000</xloc>
       <yloc>100</yloc>
       <draw>Y</draw>
     </GUI>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transformation>
   <info>
-    <name>load_fact_education</name>
+    <name>load_fact_health</name>
     <description/>
     <extended_description/>
     <trans_version/>
@@ -438,7 +438,7 @@
   </notepads>
   <connection>
     <name>national_statistics_CONN</name>
-    <server>192.168.1.2</server>
+    <server>${DB_HOST}</server>
     <type>POSTGRESQL</type>
     <access>Native</access>
     <database>national_statistics_dwh</database>
@@ -489,7 +489,7 @@
   </connection>
   <order>
     <hop>
-      <from>Read education from staging</from>
+      <from>Read health from staging</from>
       <to>Lookup governorate SK</to>
       <enabled>Y</enabled>
     </hop>
@@ -500,17 +500,17 @@
     </hop>
     <hop>
       <from>Lookup date SK</from>
-      <to>Aggregate education measures</to>
+      <to>Aggregate health measures</to>
       <enabled>Y</enabled>
     </hop>
     <hop>
-      <from>Aggregate education measures</from>
-      <to>Load fact_education</to>
+      <from>Aggregate health measures</from>
+      <to>Load fact_health</to>
       <enabled>Y</enabled>
     </hop>
   </order>
   <step>
-    <name>Aggregate education measures</name>
+    <name>Aggregate health measures</name>
     <type>GroupBy</type>
     <description/>
     <distribute>Y</distribute>
@@ -538,14 +538,14 @@
     </group>
     <fields>
       <field>
-        <aggregate>literacy_rate</aggregate>
-        <subject>literacy_rate</subject>
+        <aggregate>hospitals_count</aggregate>
+        <subject>hospitals_count</subject>
         <type>MAX</type>
         <valuefield/>
       </field>
       <field>
-        <aggregate>school_enrollment_rate</aggregate>
-        <subject>enrollment_rate</subject>
+        <aggregate>mortality_rate</aggregate>
+        <subject>mortality_rate</subject>
         <type>MAX</type>
         <valuefield/>
       </field>
@@ -565,7 +565,7 @@
     </GUI>
   </step>
   <step>
-    <name>Load fact_education</name>
+    <name>Load fact_health</name>
     <type>TableOutput</type>
     <description/>
     <distribute>Y</distribute>
@@ -577,7 +577,7 @@
     </partitioning>
     <connection>national_statistics_CONN</connection>
     <schema>dwh</schema>
-    <table>fact_education</table>
+    <table>fact_health</table>
     <commit>1000</commit>
     <truncate>N</truncate>
     <ignore_errors>N</ignore_errors>
@@ -602,12 +602,12 @@
         <stream_name>governorate_sk</stream_name>
       </field>
       <field>
-        <column_name>literacy_rate</column_name>
-        <stream_name>literacy_rate</stream_name>
+        <column_name>hospitals_count</column_name>
+        <stream_name>hospitals_count</stream_name>
       </field>
       <field>
-        <column_name>school_enrollment_rate</column_name>
-        <stream_name>school_enrollment_rate</stream_name>
+        <column_name>mortality_rate</column_name>
+        <stream_name>mortality_rate</stream_name>
       </field>
     </fields>
     <attributes/>
@@ -721,7 +721,7 @@
     </GUI>
   </step>
   <step>
-    <name>Read education from staging</name>
+    <name>Read health from staging</name>
     <type>TableInput</type>
     <description/>
     <distribute>Y</distribute>
@@ -735,9 +735,9 @@
     <sql>SELECT
   governorate_name,
   year,
-  literacy_rate,
-  enrollment_rate
-FROM staging.education_clean;
+  hospitals_count,
+  mortality_rate
+FROM staging.health_clean;
 </sql>
     <limit>0</limit>
     <lookup/>
@@ -793,16 +793,16 @@ FROM staging.education_clean;
         <lenient_string_to_number>N</lenient_string_to_number>
       </value-meta>
       <value-meta>
-        <type>BigNumber</type>
+        <type>Integer</type>
         <storagetype>normal</storagetype>
-        <name>literacy_rate</name>
-        <length>-1</length>
-        <precision>-1</precision>
+        <name>hospitals_count</name>
+        <length>9</length>
+        <precision>0</precision>
         <origin>Read education from staging</origin>
-        <comments>literacy_rate</comments>
-        <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
+        <comments>hospitals_count</comments>
+        <conversion_Mask>####0;-####0</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
-        <grouping_symbol/>
+        <grouping_symbol>,</grouping_symbol>
         <currency_symbol/>
         <trim_type>none</trim_type>
         <case_insensitive>N</case_insensitive>
@@ -818,11 +818,11 @@ FROM staging.education_clean;
       <value-meta>
         <type>BigNumber</type>
         <storagetype>normal</storagetype>
-        <name>enrollment_rate</name>
+        <name>mortality_rate</name>
         <length>-1</length>
         <precision>-1</precision>
         <origin>Read education from staging</origin>
-        <comments>enrollment_rate</comments>
+        <comments>mortality_rate</comments>
         <conversion_Mask>######0.0###################;-######0.0###################</conversion_Mask>
         <decimal_symbol>.</decimal_symbol>
         <grouping_symbol/>
